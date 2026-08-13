@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+:root {
+  /* Font fallbacks (system-safe) */
+  --font-display: 'DM Serif Display', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Syne', Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  --font-mono: 'DM Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Courier New', monospace;
+  /* Color tokens (fallbacks for non-Tailwind consumers) */
+  --paper: #0a0e14;
+  --ink: #f5f0e8;
+  --rule: #27272a;
+  --card: #18181b;
+  --muted: #a1a1aa;
+  --accent: #c8401a;
+}
+
+html, body {
+  font-family: var(--font-sans);
+  background-color: var(--paper);
+  color: var(--ink);
+}
+
+body {
+  background-image: radial-gradient(#27272a 1px, transparent 1px);
+  background-size: 24px 24px;
+}
