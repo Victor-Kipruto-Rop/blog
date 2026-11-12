@@ -28,9 +28,7 @@ export default function NewsletterForm() {
         setMessage("This address is already subscribed.");
       } else {
         setState("success");
-        setMessage(data.status === "subscribed_email_pending"
-          ? "Your address is saved. The welcome email is delayed; article notifications will follow once email delivery is healthy."
-          : "You are subscribed. Check your inbox for a welcome message.");
+        setMessage("You are subscribed. You will receive an email when a new article is published.");
         setEmail("");
         setConsent(false);
       }
@@ -44,7 +42,7 @@ export default function NewsletterForm() {
     <section className="content-panel mt-8" aria-labelledby="newsletter-heading">
       <p className="eyebrow">Field notes by email</p>
       <h2 id="newsletter-heading" className="mt-2 font-display text-2xl">Get the next engineering note.</h2>
-      <p className="mt-2 max-w-xl text-sm text-muted">Occasional articles on data engineering, fintech infrastructure and dependable software. No noise. Unsubscribe at any time.</p>
+      <p className="mt-2 max-w-xl text-sm text-muted">Occasional articles on data engineering, fintech infrastructure and dependable software. No noise. Unsubscribe from any article notification.</p>
       <form onSubmit={submit} className="mt-5 flex max-w-xl flex-col gap-3">
         <label className="sr-only" htmlFor="newsletter-email">Email address</label>
         <input id="newsletter-email" type="email" autoComplete="email" required maxLength={254}
