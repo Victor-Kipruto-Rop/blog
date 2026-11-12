@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 const links = [
   { href: "/", label: "Home" },
@@ -15,22 +15,6 @@ const links = [
 export default function NavCLI() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [dark, setDark] = useState(false);
-
-  useEffect(() => {
-    const saved = window.localStorage.getItem("vkr-blog-theme");
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const enabled = saved ? saved === "dark" : prefersDark;
-    document.body.classList.toggle("dark-mode", enabled);
-    setDark(enabled);
-  }, []);
-
-  function toggleTheme() {
-    const next = !dark;
-    document.body.classList.toggle("dark-mode", next);
-    window.localStorage.setItem("vkr-blog-theme", next ? "dark" : "light");
-    setDark(next);
-  }
 
   return (
     <header className="site-header">
@@ -55,9 +39,6 @@ export default function NavCLI() {
           ))}
         </div>
         <div className="site-nav-actions">
-          <button className="icon-button" type="button" onClick={toggleTheme} aria-label={dark ? "Switch to light theme" : "Switch to dark theme"} title={dark ? "Light theme" : "Dark theme"}>
-            {dark ? "☼" : "◐"}
-          </button>
           <button className="menu-button" type="button" onClick={() => setMenuOpen((open) => !open)} aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"} aria-expanded={menuOpen}>
             {menuOpen ? "×" : "☰"}
           </button>
