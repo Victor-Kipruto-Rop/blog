@@ -1,93 +1,62 @@
 # Victor Kipruto Rop | Engineering Notes
 
-A personal engineering publication covering data engineering, fintech infrastructure, distributed systems, software architecture and technology in East Africa.
-
-Production domain: **https://blog.victorkipruto.com**
-
-## Product principles
-
-- Portfolio-aligned visual identity: warm paper surfaces, charcoal ink, orange-red accent, Playfair Display, Plus Jakarta Sans and Fira Code.
-- Light theme by default, with an optional dark theme.
-- Content-first, accessible, responsive and fast.
-- Markdown/MDX articles stored in Git and reviewed through normal pull requests.
-- No fabricated analytics, uptime, newsletter subscribers or deployment status.
-
-## Stack
-
-- Next.js App Router and React
-- TypeScript and Tailwind CSS
-- Git-backed MDX content with reading-time metadata
-- Cloudflare Workers using the OpenNext adapter
-- Cloudflare global edge network and custom domain routing
+A light-first editorial engineering journal built with Next.js 14, MDX and Cloudflare Workers. The visual language follows the portfolio at [victorkipruto.com](https://www.victorkipruto.com): warm paper surfaces, charcoal typography, restrained red-orange accents, Playfair Display, Plus Jakarta Sans and Fira Code.
 
 ## Local development
+
+Requirements: Node.js 22 and npm.
 
 ```bash
 npm ci
 npm run dev
 ```
 
-## Content authoring
+Open http://localhost:3000.
 
-Add one `.mdx` file per article under `content/posts/`:
+## Content workflow
+
+Create an MDX file in `content/posts/<slug>.mdx`:
 
 ```md
 ---
-title: "A practical engineering article"
+title: "A useful engineering title"
 date: "2026-11-12"
-tags: ["data-engineering", "architecture"]
+tags:
+  - data engineering
+  - systems
+draft: true
 ---
 
-Write the article in Markdown. Use real publication dates and cite primary sources where appropriate.
+Write the article here.
 ```
 
-Posts are version-controlled. Drafts should not be merged into the production branch until reviewed.
+Keep `draft: true` while preparing an article. Remove the field or set `draft: false` only after editorial review. Articles are Git-versioned and statically generated. Search, topic archives, RSS, sitemap and article metadata are derived from published content.
 
-## Cloudflare deployment
+## Production deployment: Cloudflare Workers
 
-The project uses Cloudflare Workers + OpenNext because the existing application uses Next.js route handlers and server-side content loading. The Worker custom domain is declared in `wrangler.jsonc`.
+The production hostname is `blog.victorkipruto.com`. The repository includes `wrangler.jsonc` with the Workers custom-domain route and `.github/workflows/deploy-cloudflare.yml`.
 
-Required GitHub Actions secrets:
-- `CLOUDFLARE_API_TOKEN`: Cloudflare API token with Workers Scripts edit and account read permissions for the target account.
-- `CLOUDFLARE_ACCOUNT_ID`: the Cloudflare account ID that owns the `victorkipruto.com` zone.
+1. In Cloudflare, make sure the `victorkipruto.com` zone is active in the account and the account can create Workers custom domains.
+2. In GitHub repository Settings → Secrets and variables → Actions, add:
+   - `CLOUDFLARE_API_TOKEN`: scoped to the correct account with Workers Scripts edit and Zone read/custom-hostname permissions needed for the custom domain.
+   - `CLOUDFLARE_ACCOUNT_ID`: the target Cloudflare account ID (not a secret, but consumed as an Actions secret by this workflow).
+3. Merge the reviewed pull request into `main`. The deployment workflow installs locked dependencies, builds the OpenNext Worker and deploys it. It can also be started from Actions → Deploy blog to Cloudflare Workers → Run workflow.
+4. Confirm the Worker is healthy and `https://blog.victorkipruto.com`, `/sitemap.xml`, `/robots.txt` and `/api/rss` respond successfully.
 
-The deployment workflow installs pinned OpenNext/Wrangler build tools, builds the application, and deploys the Worker on pushes to `main`. The Cloudflare account must already contain the active `victorkipruto.com` zone, and the token must be authorized for it. The custom domain is `blog.victorkipruto.com`.
+The custom-domain route in Wrangler may create the hostname automatically when deployed if the zone and permissions are correct. If Cloudflare reports that the domain is not active in the account, activate the zone first and rerun deployment. Do not create conflicting DNS records manually.
 
-For a local production-runtime preview, install the Cloudflare tools and run:
+### Optional newsletter
 
-```bash
-npm install --no-save --package-lock=false @opennextjs/cloudflare@1.20.16 wrangler@4.68.0
-npm run cf:preview
-```
+The subscription endpoint is disabled by default. To enable it, configure Worker secrets `RESEND_API_KEY` and `RESEND_AUDIENCE_ID`. The UI must collect explicit consent and the Resend audience must be configured first. Never commit API keys or local `.dev.vars`.
 
-For a manual deployment:
+## Validation
 
-```bash
-npm run cf:deploy
-```
+Pull requests run `npm ci` and `npm run build`. Production deployment runs only after a push to `main` or manual dispatch. A failed or skipped CI run must be resolved before merging; do not treat a created PR as a deployment.
 
-## Quality gates
+## Editorial and operational principles
 
-Before merging a content or application change:
-
-```bash
-npm ci
-npm run build
-npm install --no-save --package-lock=false @opennextjs/cloudflare@1.20.16 wrangler@4.68.0
-npm run cf:build
-```
-
-Review the Worker preview before production deployment. Do not commit `.open-next/`, local secrets or environment files.
-
-## Security and privacy
-
-- Never commit API tokens, newsletter credentials or subscriber data.
-- Newsletter capture must be connected to a real provider and use verified consent before it is advertised as active.
-- Internal dashboards must remain private and must never expose operational secrets.
-- Analytics and operational metrics must be based on real data sources.
-
-## Related properties
-
-- Portfolio: https://www.victorkipruto.com
-- GitHub: https://github.com/Victor-Kipruto-Rop
-- LinkedIn: https://www.linkedin.com/in/victor-kipruto-rop/
+- Light theme only, matching the portfolio identity.
+- No fabricated metrics, testimonials, uptime percentages or release history.
+- Keep draft articles out of public listings, feeds and sitemap.
+- Use primary sources for technical claims and clearly distinguish measured results from estimates.
+- Keep secrets in Cloudflare/GitHub secret stores, never in source control.
