@@ -1,0 +1,27 @@
+name: Blog CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate application
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+        env:
+          SITE_URL: https://blog.victorkipruto.com
+          NEXT_PUBLIC_SITE_URL: https://blog.victorkipruto.com
