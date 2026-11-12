@@ -1,0 +1,55 @@
+---
+title: "Change Data Capture Is a Contract, Not a Copy Job"
+date: "2026-11-12"
+tags: ["data engineering", "cdc", "streaming", "reliability"]
+---
+
+Change data capture (CDC) is often introduced as a way to move database changes from one system to another. That description is technically true and architecturally incomplete. A production CDC pipeline is a contract about identity, ordering, deletion, replay, schema evolution and what downstream consumers are allowed to assume.
+
+The difference becomes obvious when a source database is busy, a connector restarts, or a consumer processes the same event twice.
+
+## Start with the event identity
+
+A useful change event needs enough information to identify the source record and the particular change. A practical envelope usually includes:
+
+- A stable source system and table identifier.
+- The primary key of the affected row.
+- The operation: insert, update or delete.
+- A source transaction or log position.
+- A schema or contract version.
+- The commit timestamp, with a clear statement of which clock it represents.
+- The before and after values when the source and privacy policy permit them.
+
+Do not use a wall-clock timestamp as the only ordering key. Clocks can drift, multiple changes can share a timestamp, and timestamps do not necessarily preserve transaction order. Prefer the source log position or another source-defined sequence, scoped to the source partition or transaction.
+
+## Delivery is usually at least once
+
+A connector can publish an event and lose the acknowledgement. It may then publish the same event again after restart. Consumers should therefore assume duplicates are possible.
+
+The practical solution is not to promise exactly-once delivery across every service. It is to make processing idempotent at the boundary where state changes.
+
+For example, keep a processed-event key derived from the source identity and log position. Apply the change and record that key in the same database transaction. If the key already exists, acknowledge the duplicate without applying the mutation again.
+
+For stateful projections, an upsert keyed by the source primary key is often safer than blindly appending every update. For immutable audit history, append the event but enforce a uniqueness constraint on its event identity.
+
+## Deletes and snapshots need explicit semantics
+
+A delete is not the same as a missing record. Represent it as a tombstone or explicit delete operation so downstream systems can remove or invalidate their copy.
+
+Initial snapshots are another boundary. A snapshot and a live stream must have a consistent hand-off point. Otherwise, a row can be missed between the snapshot scan and stream subscription, or applied twice without a deduplication strategy. Record the source position associated with the snapshot and define how events after that position are replayed.
+
+## Schema changes are product changes
+
+A new nullable field may be backward-compatible for some consumers. Renaming a field, changing its meaning, or changing a key is not. Publish a versioned event contract and test producers against representative consumer expectations.
+
+Avoid silently converting an unknown enum value to a default. Preserve the original value, quarantine incompatible records, and alert the owner. A pipeline that quietly changes meaning is more dangerous than one that stops visibly.
+
+## Operate the pipeline with evidence
+
+Monitor source-log lag, consumer lag, duplicate rate, rejected events, schema failures, replay volume and end-to-end freshness. Track these by source and consumer. A single healthy connector status does not prove that downstream tables are current.
+
+A recovery runbook should explain how to pause a consumer, identify a safe replay position, replay a bounded interval, verify counts and reconcile the target with the source. Test that procedure before an incident.
+
+The core design principle is simple: CDC is a durable interface between independently changing systems. Treat it like an API with compatibility rules, observability and ownership, not like a background copy command.
+
+**Further reading:** [Apache Spark 4.2 release notes](https://spark.apache.org/releases/spark-release-4-2-0.html) describe its newer change-data APIs; [Google Cloud Dataflow release notes](https://docs.cloud.google.com/dataflow/docs/release-notes/) document recent CDC ingestion support for lakehouse formats.

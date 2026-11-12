@@ -2,36 +2,25 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
 import NavCLI from "@/components/nav-cli";
+import NewsletterForm from "@/components/newsletter-form";
 
 const siteUrl = process.env.SITE_URL || "https://blog.victorkipruto.com";
 const description = "Engineering notes on data platforms, reliable fintech infrastructure, distributed systems and building technology in East Africa.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: {
-    default: "Victor Kipruto Rop | Engineering Notes",
-    template: "%s | Victor Kipruto Rop"
-  },
+  title: { default: "Victor Kipruto Rop | Engineering Notes", template: "%s | Victor Kipruto Rop" },
   description,
   applicationName: "Victor Kipruto Rop Engineering Blog",
   authors: [{ name: "Victor Kipruto Rop", url: "https://www.victorkipruto.com" }],
   creator: "Victor Kipruto Rop",
   alternates: { canonical: "/", types: { "application/rss+xml": "/api/rss" } },
   openGraph: {
-    title: "Victor Kipruto Rop | Engineering Notes",
-    description,
-    url: siteUrl,
-    siteName: "Victor Kipruto Rop | Engineering Notes",
-    locale: "en_KE",
-    type: "website",
+    title: "Victor Kipruto Rop | Engineering Notes", description, url: siteUrl,
+    siteName: "Victor Kipruto Rop | Engineering Notes", locale: "en_KE", type: "website",
     images: [{ url: "/api/og?title=Engineering%20Notes", width: 1200, height: 630, alt: "Victor Kipruto Rop Engineering Notes" }]
   },
-  twitter: {
-    card: "summary_large_image",
-    title: "Victor Kipruto Rop | Engineering Notes",
-    description,
-    images: ["/api/og?title=Engineering%20Notes"]
-  },
+  twitter: { card: "summary_large_image", title: "Victor Kipruto Rop | Engineering Notes", description, images: ["/api/og?title=Engineering%20Notes"] },
   robots: { index: true, follow: true },
   category: "technology"
 };
@@ -50,7 +39,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="site-main">{children}</main>
         <footer className="site-footer">
           <div className="site-footer-inner">
-            <div className="footer-grid">
+            <NewsletterForm />
+            <div className="footer-grid mt-10">
               <div className="footer-brand">
                 <p className="footer-heading">Victor Kipruto Rop</p>
                 <p className="footer-copy">Practical engineering notes on data platforms, fintech infrastructure, distributed systems and the decisions behind reliable software.</p>
