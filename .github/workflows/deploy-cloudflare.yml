@@ -56,13 +56,18 @@ jobs:
             echo "::error::BLOG_NOTIFICATION_SECRET is required for post-publish notifications."
             exit 1
           fi
-          while IFS= read -r file; do
-            [ -n "$file" ] || continue
-            slug="$(basename "$file" .mdx)"
-            echo "Sending new-article notification for $slug"
-            curl --fail-with-body --silent --show-error \
-              -X POST "https://blog.victorkipruto.com/api/notify" \
-              -H "Authorization: Bearer ${BLOG_NOTIFICATION_SECRET}" \
-              -H "Content-Type: application/json" \
-              --data "{\"slug\":\"$slug\"}"
-          done < <(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- 'content/posts/*.mdx')
+          mapfile -t changed_posts < <(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- 'content/posts/*.mdx')
+          if [ "${#changed_posts[@]}" -eq 0 ]; then
+            echo "No article content changed; no newsletter notification is needed."
+            exit 0
+          fi
+          slugs=()
+          for file in "${changed_posts[@]}"; do
+            slugs+=("$(basename "$file" .mdx)")
+          done
+          payload="$(printf '%s\n' "${slugs[@]}" | jq -R -s -c 'split("\n") | map(select(length > 0))')"
+          curl --fail-with-body --silent --show-error \
+            -X POST "https://blog.victorkipruto.com/api/notify" \
+            -H "Authorization: Bearer ${BLOG_NOTIFICATION_SECRET}" \
+            -H "Content-Type: application/json" \
+            --data "{\"slugs\":${payload}}"

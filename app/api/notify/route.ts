@@ -14,18 +14,19 @@ export async function POST(req: Request) {
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
-
-  let payload: { slug?: string };
+  let payload: { slugs?: string[] };
   try { payload = await req.json(); }
   catch { return NextResponse.json({ error: "A valid JSON request is required." }, { status: 400 }); }
 
-  const slug = payload.slug || "";
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
-    return NextResponse.json({ error: "A valid published article slug is required." }, { status: 400 });
+  const slugs = Array.isArray(payload.slugs) ? [...new Set(payload.slugs)] : [];
+  if (!slugs.length || slugs.length > 10 || slugs.some((slug) => typeof slug !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug))) {
+    return NextResponse.json({ error: "Provide between one and ten valid published article slugs." }, { status: 400 });
   }
-  const post = getPostBySlug(slug);
-  if (!post) return NextResponse.json({ error: "Published article not found." }, { status: 404 });
-
+  const posts = slugs.map((slug) => getPostBySlug(slug));
+  if (posts.some((post) => !post)) {
+    return NextResponse.json({ error: "One or more articles are not published." }, { status: 404 });
+  }
+  const published = posts.filter((post): post is NonNullable<typeof post> => post !== null);
   const apiKey = process.env.RESEND_API_KEY;
   const audienceId = process.env.RESEND_AUDIENCE_ID;
   const from = process.env.RESEND_FROM_EMAIL;
@@ -33,16 +34,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Newsletter delivery is not configured." }, { status: 503 });
   }
 
-  const articleUrl = `${SITE_URL}/posts/${slug}`;
-  const excerpt = post.content.replace(/[#>*_`\[\]()]/g, " ").replace(/\s+/g, " ").trim().slice(0, 420);
-  const subject = `New article: ${post.title}`;
-  const html = `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#25221f;max-width:620px;margin:auto"><p style="color:#bd4b2c;font-size:12px;letter-spacing:2px;text-transform:uppercase">Victor Kipruto Rop · Engineering Notes</p><h1>${escapeHtml(post.title)}</h1><p>${escapeHtml(excerpt)}</p><p><a href="${articleUrl}" style="display:inline-block;background:#bd4b2c;color:white;padding:12px 18px;text-decoration:none;border-radius:8px">Read the article</a></p><p style="font-size:12px;color:#777">You are receiving this because you subscribed to article notifications.</p></div>`;
-  const text = `${post.title}\n\n${excerpt}\n\nRead: ${articleUrl}\n\nYou are receiving this because you subscribed to article notifications.`;
+  const items = published.map((post) => {
+    const url = `${SITE_URL}/posts/${post.slug}`;
+    const excerpt = post.content.replace(/[#>*_`\[\]()]/g, " ").replace(/\s+/g, " ").trim().slice(0, 260);
+    return { title: post.title, url, excerpt };
+  });
+  const subject = items.length === 1 ? `New article: ${items[0].title}` : `${items.length} new engineering notes`;
+  const htmlItems = items.map((item) => `<article style="padding:16px 0;border-bottom:1px solid #eee"><h2 style="font-size:20px"><a href="${item.url}" style="color:#bd4b2c;text-decoration:none">${escapeHtml(item.title)}</a></h2><p>${escapeHtml(item.excerpt)}</p><p><a href="${item.url}">Read article →</a></p></article>`).join("");
+  const html = `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#25221f;max-width:620px;margin:auto"><p style="color:#bd4b2c;font-size:12px;letter-spacing:2px;text-transform:uppercase">Victor Kipruto Rop · Engineering Notes</p><h1>${items.length === 1 ? "A new article is out" : "New engineering notes"}</h1>${htmlItems}<p style="font-size:12px;color:#777">You are receiving this because you subscribed to article notifications. <a href="{{{RESEND_UNSUBSCRIBE_URL}}}">Unsubscribe</a></p></div>`;
+  const text = items.map((item) => `${item.title}\n${item.excerpt}\nRead: ${item.url}`).join("\n\n") + "\n\nUnsubscribe: {{{RESEND_UNSUBSCRIBE_URL}}}";
+  const idempotencyKey = `blog-publish-${[...slugs].sort().join("-")}`.slice(0, 240);
 
   try {
     const created = await fetch("https://api.resend.com/broadcasts", {
       method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", "Idempotency-Key": `blog-post-${slug}` },
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
       body: JSON.stringify({ audience_id: audienceId, from, subject, html, text }),
       cache: "no-store"
     });
@@ -52,13 +58,13 @@ export async function POST(req: Request) {
     }
     const sent = await fetch(`https://api.resend.com/broadcasts/${encodeURIComponent(broadcast.id)}/send`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", "Idempotency-Key": `blog-post-send-${slug}` },
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", "Idempotency-Key": `${idempotencyKey}-send` },
       cache: "no-store"
     });
     if (!sent.ok) {
       return NextResponse.json({ error: "The notification was created but could not be sent.", broadcastId: broadcast.id }, { status: 502 });
     }
-    return NextResponse.json({ status: "sent", broadcastId: broadcast.id, slug }, { status: 202 });
+    return NextResponse.json({ status: "sent", broadcastId: broadcast.id, count: published.length }, { status: 202 });
   } catch {
     return NextResponse.json({ error: "The email provider could not be reached." }, { status: 502 });
   }
