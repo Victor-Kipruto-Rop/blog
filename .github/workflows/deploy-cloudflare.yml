@@ -1,0 +1,73 @@
+name: Deploy blog to Cloudflare Workers
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: cloudflare-blog-production
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Install Cloudflare build tools
+        run: npm install --no-save --package-lock=false @opennextjs/cloudflare@1.20.16 wrangler@4.68.0
+
+      - name: Build and deploy
+        run: npx opennextjs-cloudflare build && npx opennextjs-cloudflare deploy
+        env:
+          SITE_URL: https://blog.victorkipruto.com
+          NEXT_PUBLIC_SITE_URL: https://blog.victorkipruto.com
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Notify subscribers about newly published articles
+        if: github.event_name == 'push'
+        env:
+          BLOG_NOTIFICATION_SECRET: ${{ secrets.BLOG_NOTIFICATION_SECRET }}
+          BASE_SHA: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${BLOG_NOTIFICATION_SECRET}" ]; then
+            echo "::error::BLOG_NOTIFICATION_SECRET is required for post-publish notifications."
+            exit 1
+          fi
+          mapfile -t changed_posts < <(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- 'content/posts/*.mdx')
+          if [ "${#changed_posts[@]}" -eq 0 ]; then
+            echo "No article content changed; no newsletter notification is needed."
+            exit 0
+          fi
+          slugs=()
+          for file in "${changed_posts[@]}"; do
+            slugs+=("$(basename "$file" .mdx)")
+          done
+          payload="$(printf '%s\n' "${slugs[@]}" | jq -R -s -c 'split("\n") | map(select(length > 0))')"
+          curl --fail-with-body --silent --show-error \
+            -X POST "https://blog.victorkipruto.com/api/notify" \
+            -H "Authorization: Bearer ${BLOG_NOTIFICATION_SECRET}" \
+            -H "Content-Type: application/json" \
+            --data "{\"slugs\":${payload}}"

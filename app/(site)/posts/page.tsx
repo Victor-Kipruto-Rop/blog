@@ -1,34 +1,19 @@
 import { getAllPosts } from "@/lib/content-engine/registry";
+import PostCard from "@/components/post-card";
+
+export const metadata = { title: "Articles", description: "All engineering articles and field notes by Victor Kipruto Rop." };
 
 export default function PostsIndex() {
   const posts = getAllPosts();
   return (
     <div>
-      <p className="font-mono text-accent text-sm mb-4">$ ls posts/ -la</p>
-      <table className="w-full text-sm font-mono">
-        <thead className="text-gray-500 border-b border-border">
-          <tr>
-            <th className="text-left py-2">date</th>
-            <th className="text-left py-2">title</th>
-            <th className="text-left py-2">tags</th>
-            <th className="text-left py-2">read</th>
-          </tr>
-        </thead>
-        <tbody>
-          {posts.map((p) => (
-            <tr key={p.slug} className="border-b border-border/50 hover:bg-panel">
-              <td className="py-2 text-gray-500">{p.date}</td>
-              <td className="py-2">
-                <a href={`/posts/${p.slug}`} className="text-gray-200 hover:text-accent">
-                  {p.title}
-                </a>
-              </td>
-              <td className="py-2 text-gray-500">{p.tags.join(", ")}</td>
-              <td className="py-2 text-gray-500">{p.readingTime}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <p className="eyebrow">The archive</p>
+      <h1 className="mt-3 font-display text-5xl tracking-tight">Articles & field notes</h1>
+      <p className="mt-4 max-w-2xl text-muted">A growing collection of practical writing on data engineering, fintech infrastructure, cloud systems and software architecture.</p>
+      <p className="mt-6 post-meta">{posts.length} {posts.length === 1 ? "ARTICLE" : "ARTICLES"} · NEW WRITING ADDED AS IT IS REVIEWED</p>
+      <div className="post-grid mt-8">
+        {posts.map((post) => <PostCard key={post.slug} slug={post.slug} title={post.title} date={post.date} tags={post.tags} readingTime={post.readingTime} />)}
+      </div>
     </div>
   );
 }

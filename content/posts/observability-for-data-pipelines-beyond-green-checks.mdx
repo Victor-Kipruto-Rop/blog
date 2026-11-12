@@ -1,0 +1,54 @@
+---
+title: "Observability for Data Pipelines: Beyond Green Checks"
+date: "2026-11-08"
+tags: ["observability", "data engineering", "opentelemetry", "reliability"]
+---
+
+A pipeline can be green and still be wrong. The scheduler may report success while a source is stale, a join drops half the records, a schema change silently converts values, or a downstream dashboard continues serving yesterday’s data.
+
+Operational observability must describe the health of the data product, not only the health of the process that moves it.
+
+## Observe four dimensions
+
+**Execution:** Did the job start, finish and stay within its resource budget? Track duration, retries, failures, queue depth and worker saturation.
+
+**Freshness:** How old is the newest usable record? Measure from the source event or source commit when possible, and distinguish event time from ingestion time.
+
+**Volume:** Did the number of records change unexpectedly? Compare counts by partition, source and business date. A sudden drop may be a source outage or a legitimate quiet period, so thresholds should reflect domain behavior.
+
+**Validity:** Do records satisfy the contract? Track null rates, uniqueness, referential integrity, accepted value ranges and schema compatibility. Quarantine bad records with enough context to investigate without exposing sensitive payloads.
+
+## Trace a record across boundaries
+
+Distributed traces help explain where time is spent across ingestion, transformation, queueing and serving. Propagate correlation identifiers and trace context where the systems support it. Avoid putting customer data, payment details or raw payloads into span attributes.
+
+OpenTelemetry provides common APIs and conventions for traces, metrics and logs. It does not automatically understand your business meaning. Add domain-level attributes such as pipeline name, source system, dataset version and processing stage, while keeping cardinality under control.
+
+## Define data SLOs
+
+A useful service-level objective might state that 99% of a dataset’s hourly partitions become queryable within a defined freshness window. Another could define the acceptable percentage of records that pass a required validation suite.
+
+Choose indicators that users can understand. A job success percentage is rarely a sufficient promise. A dashboard consumer cares whether the right data arrived, whether it is valid and when it became available.
+
+Use error budgets to guide change. If freshness objectives are repeatedly missed, pause risky changes and address the bottleneck before adding more consumers.
+
+## Make alerts actionable
+
+An alert should tell an operator what failed, which dataset or tenant is affected, when the problem began, what changed recently and where the runbook lives. Alert on sustained symptoms, not every transient retry.
+
+Create separate alerts for:
+- Source lag beyond the freshness objective.
+- Unexpected volume or partition gaps.
+- Schema incompatibility and validation failures.
+- Queue growth or consumer lag.
+- Reconciliation exceptions that exceed their age threshold.
+
+## Build a recovery loop
+
+Observability is incomplete without recovery. A runbook should define safe replay boundaries, deduplication behavior, backfill procedures, validation queries and how to communicate data corrections to consumers.
+
+After recovery, compare source and target counts, key coverage and important aggregates. Record the incident and update the tests that would have detected it earlier.
+
+The objective is not to collect the most telemetry. It is to shorten the time between a data problem occurring, being understood and being corrected with evidence.
+
+**Further reading:** [OpenTelemetry documentation](https://opentelemetry.io/docs/) and the [OpenTelemetry semantic conventions releases](https://github.com/open-telemetry/semantic-conventions/releases).

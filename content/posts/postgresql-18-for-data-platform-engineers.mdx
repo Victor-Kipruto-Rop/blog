@@ -1,0 +1,39 @@
+---
+title: "PostgreSQL 18: What Data Platform Engineers Should Actually Evaluate"
+date: "2026-11-10"
+tags: ["postgresql", "databases", "data engineering", "performance"]
+---
+
+PostgreSQL 18 is not a reason to upgrade every production database without a plan. It is a reason to revisit assumptions about I/O, indexing, identifiers, generated values and authentication, then test the features against the workload you actually run.
+
+The PostgreSQL project released version 18 on 25 September 2025. The release includes an asynchronous I/O subsystem, skip-scan support for multicolumn B-tree indexes, the `uuidv7()` function, virtual generated columns and OAuth authentication support.
+
+## Measure I/O before changing configuration
+
+The asynchronous I/O subsystem is one of the most interesting performance changes. It can improve workloads involving sequential scans, bitmap heap scans and vacuum operations. But a feature announcement is not a capacity plan.
+
+Benchmark with representative table sizes, cache states, storage classes and concurrency. Measure throughput and tail latency, not only the fastest single query. Include vacuum and index maintenance because a database that performs well during a read-only test can struggle under real write and maintenance pressure.
+
+## Revisit composite indexes
+
+Skip scan can make some multicolumn B-tree indexes useful in cases where the leading column has relatively few distinct values and a query constrains a later column. This does not mean column order no longer matters.
+
+Use `EXPLAIN (ANALYZE, BUFFERS)` on real query shapes. Compare plans before and after the upgrade, and confirm that the planner is choosing the expected access path. Keep indexes that support measured workloads; remove redundant indexes only after checking write amplification and less frequent queries.
+
+## Consider UUIDv7 for new identifiers
+
+PostgreSQL 18 includes `uuidv7()`, which generates time-ordered UUIDs. Compared with fully random UUIDs, time locality can improve index insertion patterns for some workloads. It also exposes approximate creation-time ordering, so consider whether that metadata is appropriate for your privacy and threat model.
+
+Do not change existing primary keys just to adopt a new function. For new tables, benchmark insert throughput, index size and query behavior under realistic concurrency. Keep business identifiers separate from internal database keys.
+
+## Understand virtual generated columns
+
+Virtual generated columns compute their value when read rather than storing it as a regular stored generated column. That can reduce storage duplication, but the computation still has a cost. Test frequently selected expressions and avoid turning an expensive calculation into an invisible per-row tax.
+
+## Treat major upgrades as operational projects
+
+A safe major-version upgrade includes extension compatibility checks, backup restoration tests, query-plan comparison, replication validation, connection-pool checks and a rollback plan. PostgreSQL 18 also changes some text-search and collation behavior, so review the official migration notes for affected indexes and extensions.
+
+For a data platform, database reliability is not just query speed. It includes predictable recovery, observable replication lag, controlled schema migrations and a clear source of truth.
+
+**Further reading:** [PostgreSQL 18 release notes](https://www.postgresql.org/docs/18/release-18.html), [PostgreSQL 18 release announcement](https://www.postgresql.org/about/news/postgresql-18-released-3142/) and the [versioning policy](https://www.postgresql.org/support/versioning/).

@@ -1,0 +1,54 @@
+---
+title: "Open Table Formats and the Real Meaning of Interoperability"
+date: "2026-11-11"
+tags: ["data engineering", "lakehouse", "apache iceberg", "architecture"]
+---
+
+An open table format does not make a data platform automatically open. It gives engines a shared way to understand table metadata, snapshots, schemas and files. The rest of the architecture still matters: catalogs, permissions, object storage, compute engines, transaction coordination and operational ownership.
+
+That distinction matters as teams evaluate Apache Iceberg, Delta Lake and Apache Hudi for analytics platforms that need to serve more than one engine.
+
+## Separate the layers
+
+A useful way to reason about a lakehouse is to separate four concerns:
+
+1. **Files:** columnar data such as Apache Parquet stored in object storage.
+2. **Table metadata:** manifests, snapshots, schemas, partition information and commit history.
+3. **Catalog:** the service that resolves table names and coordinates access to metadata.
+4. **Compute:** engines that read, write, compact and query the tables.
+
+Interoperability can fail at any layer. Two engines may understand Parquet but disagree about table metadata. They may support the same table format but use incompatible catalog authentication or locking assumptions. They may read a table successfully but have different support for deletes, schema evolution or maintenance operations.
+
+## Ask what your workloads actually need
+
+Before choosing a format, list the operations that matter:
+
+- Can the engines you operate read and write the same tables?
+- How are concurrent commits coordinated?
+- Which catalog APIs are supported?
+- How are deletes and updates represented?
+- How do schema and partition evolution behave?
+- Who runs compaction, snapshot expiration and orphan-file cleanup?
+- Can you restore a previous snapshot and prove what changed?
+
+A benchmark that only measures a scan does not answer these questions.
+
+## The Iceberg ecosystem keeps moving
+
+Apache Iceberg 1.12.0 was released in September 2026. Its release notes include geometry and geography read/write support and compatibility updates for newer Flink releases. The important architectural lesson is not that every team should upgrade immediately. It is that format and engine compatibility must be tested as a matrix, not inferred from a single version number.
+
+A safe upgrade process pins the table format, catalog and engine versions in a compatibility test environment. Test representative reads, writes, deletes, schema changes, concurrent commits and recovery from interrupted jobs before promoting the new combination.
+
+## Avoid the shared-storage fallacy
+
+Putting files in the same bucket does not create a shared data platform. Define catalog ownership, service identities, least-privilege permissions and a clear writer model. If two engines can mutate the same table, document how conflicting writes are prevented or resolved.
+
+Also separate analytical tables from operational transaction stores. A lakehouse is excellent for historical analysis and large-scale transformation. It is not automatically the right place to enforce the immediate consistency requirements of a payment ledger or account balance.
+
+## A practical adoption path
+
+Start with one domain and one high-value analytical use case. Keep the source of truth explicit. Introduce a catalog, publish a data contract, and select one primary writer. Add a second engine only after the first path is observable and recoverable. Track query freshness, small-file growth, metadata operations, failed commits and storage costs.
+
+Open formats create options. Good engineering turns those options into reliable portability.
+
+**Further reading:** [Apache Iceberg releases](https://iceberg.apache.org/releases/) and [Google Cloud Lakehouse release notes](https://docs.cloud.google.com/lakehouse/docs/release-notes) provide current examples of format and catalog evolution.

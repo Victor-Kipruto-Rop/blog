@@ -1,32 +1,19 @@
-// [v2] Public system dashboard — wire to lib/monitoring/health-check.ts
-export default function StatusPage() {
-  const metrics = {
-    uptime: "99.98%",
-    lastDeploy: "2026-07-14 09:12 UTC",
-    posts: 0,
-    buildStatus: "passing",
-  };
+import { getAllPosts } from "@/lib/content-engine/registry";
 
+export const metadata = { title: "Publishing status", description: "How this engineering journal is built and maintained." };
+
+export default function StatusPage() {
+  const posts = getAllPosts();
   return (
     <div>
-      <p className="font-mono text-accent text-sm mb-4">$ system --health</p>
-      <div className="grid grid-cols-2 gap-4 font-mono text-sm">
-        <div className="border border-border rounded p-4">
-          <p className="text-gray-500">uptime</p>
-          <p className="text-accent text-lg">{metrics.uptime}</p>
-        </div>
-        <div className="border border-border rounded p-4">
-          <p className="text-gray-500">build</p>
-          <p className="text-accent text-lg">{metrics.buildStatus}</p>
-        </div>
-        <div className="border border-border rounded p-4">
-          <p className="text-gray-500">last deploy</p>
-          <p>{metrics.lastDeploy}</p>
-        </div>
-        <div className="border border-border rounded p-4">
-          <p className="text-gray-500">posts</p>
-          <p>{metrics.posts}</p>
-        </div>
+      <p className="eyebrow">Publishing status</p>
+      <h1 className="mt-3 font-display text-5xl tracking-tight">A small, dependable publication.</h1>
+      <p className="mt-4 max-w-2xl text-muted">This page describes the publishing setup. Live uptime monitoring and deployment telemetry have not been connected, so no availability percentage or incident history is claimed.</p>
+      <div className="mt-8 grid gap-4 sm:grid-cols-2">
+        <div className="content-panel"><p className="post-meta">CONTENT SOURCE</p><p className="mt-2 text-xl font-display">Git-backed MDX</p><p className="mt-2 text-sm text-muted">Articles are reviewed and version-controlled before publishing.</p></div>
+        <div className="content-panel"><p className="post-meta">EDGE PLATFORM</p><p className="mt-2 text-xl font-display">Cloudflare Workers</p><p className="mt-2 text-sm text-muted">Production deployment health will be reported here once telemetry is wired.</p></div>
+        <div className="content-panel"><p className="post-meta">PUBLISHED ARTICLES</p><p className="mt-2 text-3xl font-display">{posts.length}</p><p className="mt-2 text-sm text-muted">Count generated from the published content registry.</p></div>
+        <div className="content-panel"><p className="post-meta">OBSERVABILITY</p><p className="mt-2 text-xl font-display">Not yet connected</p><p className="mt-2 text-sm text-muted">No synthetic uptime checks or incident-management integration is configured.</p></div>
       </div>
     </div>
   );

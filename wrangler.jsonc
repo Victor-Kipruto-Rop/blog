@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "victor-engineering-blog",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-11-12",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "routes": [
+    {
+      "pattern": "blog.victorkipruto.com",
+      "custom_domain": true
+    }
+  ],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "vars": {
+    "SITE_URL": "https://blog.victorkipruto.com",
+    "NEXT_PUBLIC_SITE_URL": "https://blog.victorkipruto.com"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

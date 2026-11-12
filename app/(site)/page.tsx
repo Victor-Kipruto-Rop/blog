@@ -1,103 +1,72 @@
 import Link from "next/link";
 import { getAllPosts, getAllTags } from "@/lib/content-engine/registry";
 import PostCard from "@/components/post-card";
-import StatusBadge from "@/components/status-badge";
 
 export default function HomePage() {
   const posts = getAllPosts();
-  const latestPost = posts[0];
   const tags = getAllTags();
+  const latestPost = posts[0];
 
   return (
-    <div className="space-y-lg">
-      <section className="rounded-lg border border-rule bg-card p-lg shadow-lg">
-        <div className="space-y-lg">
-          <div className="flex flex-wrap items-center gap-md text-xs font-mono uppercase tracking-wider text-accent">
-            <StatusBadge />
-            <span>// SYSTEM ONLINE · 2026</span>
-          </div>
-          <div className="space-y-md">
-            <h1 className="text-4xl sm:text-5xl font-display font-semibold leading-tight text-ink">
-              Engineering data systems for fintech and East African infrastructure.
-            </h1>
-            <p className="max-w-2xl text-muted">
-              A premium log for data engineering, fintech infrastructure, and systems design — written with clarity, restraint, and technical rigor.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-md">
-            <Link
-              href={latestPost ? `/posts/${latestPost.slug}` : "/posts"}
-              className="rounded-base bg-accent px-lg py-md text-sm font-semibold text-white transition-all hover:bg-accent-hover"
-            >
-              Read latest post
-            </Link>
-            <Link
-              href="/readme"
-              className="rounded-base border border-rule bg-transparent px-lg py-md text-sm font-semibold text-ink transition-all hover:border-accent hover:text-accent"
-            >
-              Subscribe
-            </Link>
-          </div>
+    <div>
+      <section className="hero-panel">
+        <p className="eyebrow">Independent engineering journal · Nairobi, Kenya</p>
+        <h1 className="hero-title">Building systems that <em>move data</em> and move ideas forward.</h1>
+        <p className="hero-description">
+          Practical notes from the work of engineering data platforms, dependable fintech infrastructure,
+          distributed systems and software that solves real problems.
+        </p>
+        <div className="button-row">
+          <Link href={latestPost ? `/posts/${latestPost.slug}` : "/posts"} className="button-primary">Read the latest article ↗</Link>
+          <Link href="/readme" className="button-secondary">About this journal</Link>
+        </div>
+        <div className="mt-8 flex flex-wrap gap-5 text-xs font-mono text-muted">
+          <span>01 / DATA ENGINEERING</span>
+          <span>02 / FINTECH SYSTEMS</span>
+          <span>03 / CLOUD & DISTRIBUTED SYSTEMS</span>
         </div>
       </section>
 
-      {latestPost ? (
-        <section className="rounded-lg border border-rule bg-card p-lg">
-          <div className="space-y-md">
-            <p className="font-mono text-xs uppercase tracking-wider text-muted">// LATEST POST</p>
-            <Link href={`/posts/${latestPost.slug}`} className="text-3xl font-semibold text-ink hover:text-accent transition-colors">
-              {latestPost.title}
-            </Link>
-            <p className="max-w-2xl text-muted">
-              {latestPost.content.split("\n").find((line) => line.trim()) ?? "A new post from DataForge Log."}
-            </p>
-            <div className="flex flex-wrap gap-md items-center text-xs font-mono text-muted">
-              <span>{latestPost.date}</span>
-              <span>·</span>
-              <span>{latestPost.readingTime}</span>
-              <div className="flex flex-wrap gap-sm">
-                {latestPost.tags.map((tag) => (
-                  <span key={tag} className="rounded-sm border border-rule px-sm py-xs">
-                    #{tag}
-                  </span>
-                ))}
-              </div>
-            </div>
+      <section>
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">The notebook</p>
+            <h2>Latest writing</h2>
           </div>
-        </section>
-      ) : null}
-
-      <section className="grid gap-lg lg:grid-cols-[1.5fr_1fr]">
-        <div className="rounded-lg border border-rule bg-card p-lg">
-          <p className="font-mono text-xs uppercase tracking-wider text-muted">// ALL POSTS</p>
-          <div className="mt-lg space-y-md">
-            {posts.map((post) => (
-              <PostCard
-                key={post.slug}
-                slug={post.slug}
-                title={post.title}
-                date={post.date}
-                tags={post.tags}
-                readingTime={post.readingTime}
-              />
+          <Link href="/posts" className="font-mono text-xs text-accent">Browse all articles ↗</Link>
+        </div>
+        {posts.length ? (
+          <div className="post-grid">
+            {posts.slice(0, 6).map((post) => (
+              <PostCard key={post.slug} slug={post.slug} title={post.title} date={post.date}
+                tags={post.tags} readingTime={post.readingTime} />
             ))}
+          </div>
+        ) : (
+          <div className="content-panel text-muted">The next field notes are being prepared. Check back soon.</div>
+        )}
+      </section>
+
+      <section className="mt-14 grid gap-5 md:grid-cols-[1.2fr_.8fr]">
+        <div className="content-panel">
+          <p className="eyebrow">What I write about</p>
+          <h2 className="mt-3 font-display text-3xl">Engineering, with the trade-offs left in.</h2>
+          <p className="mt-3 max-w-xl text-sm text-muted">The goal is not to repeat documentation. It is to explain the decisions, failure modes and operational details that matter when systems meet production.</p>
+          <div className="mt-6 flex flex-wrap gap-2">
+            {tags.map((tag) => <Link className="tag-pill" key={tag} href={`/tags/${encodeURIComponent(tag)}`}>#{tag}</Link>)}
           </div>
         </div>
-
-        <aside className="rounded-lg border border-rule bg-card p-lg">
-          <p className="font-mono text-xs uppercase tracking-wider text-muted">// TAGS</p>
-          <div className="mt-lg flex flex-wrap gap-sm">
-            {tags.map((tag) => (
-              <Link
-                key={tag}
-                href={`/tags/${tag}`}
-                className="rounded-sm border border-rule bg-transparent px-md py-sm text-xs text-ink transition-all hover:border-accent hover:text-accent"
-              >
-                #{tag}
-              </Link>
-            ))}
+        <div className="content-panel flex flex-col justify-between">
+          <div>
+            <p className="eyebrow">About the author</p>
+            <h2 className="mt-3 font-display text-2xl">Victor Kipruto Rop</h2>
+            <p className="mt-3 text-sm text-muted">Data Engineer and FinTech Infrastructure Builder. Interested in reliable data pipelines, payment systems, cloud infrastructure and thoughtful software engineering.</p>
           </div>
-        </aside>
+          <div className="mt-6 flex flex-wrap gap-4 font-mono text-xs">
+            <a className="text-accent" href="https://www.victorkipruto.com">Portfolio ↗</a>
+            <a className="text-accent" href="https://github.com/Victor-Kipruto-Rop">GitHub ↗</a>
+          </div>
+        </div>
       </section>
     </div>
   );

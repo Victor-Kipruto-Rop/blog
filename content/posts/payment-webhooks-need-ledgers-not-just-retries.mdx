@@ -1,0 +1,54 @@
+---
+title: "Payment Webhooks Need Ledgers, Not Just Retries"
+date: "2026-11-09"
+tags: ["fintech", "payments", "webhooks", "reconciliation", "data engineering"]
+---
+
+A payment webhook is a notification that something happened in another system. It is not, by itself, proof that your internal records are correct. Networks retry, callbacks arrive late, events can be duplicated, and two systems may describe the same transaction using different identifiers or status vocabularies.
+
+A robust payment integration therefore needs more than a route that accepts JSON and returns HTTP 200. It needs an immutable event record, a normalized transaction model, a reconciliation process and an auditable path from external evidence to internal state.
+
+## Preserve the original evidence
+
+Store the raw callback body, relevant headers, provider identity, receipt time and verification result before transforming the event. Protect sensitive fields and apply an explicit retention policy. Raw evidence should be append-only from the application’s perspective.
+
+Do not assume every provider signs callbacks in the same way. Verify signatures, shared secrets, source restrictions or provider-specific authentication exactly as documented. Reject invalid evidence without leaking secrets in logs.
+
+## Normalize without erasing provider meaning
+
+Map external events into an internal vocabulary such as received, pending, successful, failed, reversed or disputed. Keep the original provider status and event type alongside the normalized status.
+
+A transaction model should distinguish at least:
+- Your internal transaction identifier.
+- The provider transaction or receipt identifier.
+- The merchant or account reference.
+- Amount and currency.
+- Event time and ingestion time.
+- Current normalized state.
+- The source event IDs that contributed to the state.
+
+Never use amount and phone number as a unique key. They are attributes, not reliable identifiers.
+
+## Make callback processing idempotent
+
+Create a unique constraint for the provider event identity where available. If the provider does not expose a stable event ID, derive a carefully scoped fingerprint from stable fields and document its limitations.
+
+The transaction update and event-processing record should commit atomically. A duplicate callback should return a successful acknowledgement after confirming that the original event was already processed. It must not create a second credit, debit or notification.
+
+## Keep reconciliation independent
+
+Callbacks can be delayed or missed. Run scheduled reconciliation against provider statements, transaction queries or settlement reports where the integration supports them. Compare expected and observed records, then classify differences: missing callback, unmatched reference, amount mismatch, duplicate, late reversal or status disagreement.
+
+Do not silently overwrite a discrepancy. Create an exception with its evidence, owner, age and resolution history. Financial corrections should follow an explicit, permissioned process and leave an audit trail.
+
+## Separate observation from movement of money
+
+An integration that receives callbacks and reconciles records is not automatically authorized to initiate, refund, reverse or settle funds. Keep those capabilities separate in API scopes, service identities and approval workflows. A reporting or reconciliation service should not gain movement-of-money permissions merely because a provider API offers them.
+
+## Design the operational path
+
+Monitor callback acceptance, signature failures, processing lag, duplicate rate, reconciliation coverage and unresolved exceptions. Alert on stale queues and growing exception age. Provide replay tools that are safe, bounded and auditable.
+
+The strongest payment systems do not assume the network is perfect. They preserve evidence, make repeated delivery harmless and continuously compare internal records with external truth.
+
+**Further reading:** For a provider-specific implementation, follow the provider’s official webhook authentication, callback and reconciliation documentation. Treat those rules as authoritative rather than copying assumptions from another payment rail.
